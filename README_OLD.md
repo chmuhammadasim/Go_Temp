@@ -53,7 +53,7 @@ A **production-ready**, robust and well-structured Go backend API with comprehen
 ## 📁 Project Structure
 
 ```
-go_temp/
+go-backend/
 ├── 📁 cmd/
 │   └── 📁 server/
 │       └── 📄 main.go              # 🚀 Application entry point & server setup
@@ -119,8 +119,8 @@ Before you begin, ensure you have the following installed:
 
 1. **Clone the repository:**
 ```bash
-git clone https://github.com/chmuhammadasim/go_temp.git
-cd go_temp
+git clone https://github.com/your-username/go-backend.git
+cd go-backend
 ```
 
 2. **Install dependencies:**
@@ -382,10 +382,10 @@ GOOS=darwin GOARCH=amd64 go build -o bin/server-mac cmd/server/main.go
 
 ```bash
 # Build the Docker image
-docker build -t go_temp:latest .
+docker build -t go-backend:latest .
 
 # Run with Docker
-docker run -p 8080:8080 --env-file .env go_temp:latest
+docker run -p 8080:8080 --env-file .env go-backend:latest
 ```
 
 ### 🐙 Docker Compose (Optional)
@@ -587,7 +587,7 @@ We welcome contributions! Please follow these guidelines:
 1. **Fork** the repository
 2. **Clone** your fork:
    ```bash
-   git clone https://github.com/chmuhammadasim/go_temp.git
+   git clone https://github.com/your-username/go-backend.git
    ```
 3. **Create** a feature branch:
    ```bash
@@ -656,8 +656,8 @@ SOFTWARE.
 ## 📞 Support
 
 - **Documentation**: This README and inline code comments
-- **Issues**: [GitHub Issues](https://github.com/chmuhammadasim/go_temp/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/chmuhammadasim/go_temp/discussions)
+- **Issues**: [GitHub Issues](https://github.com/your-username/go-backend/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/your-username/go-backend/discussions)
 
 ---
 
