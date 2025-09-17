@@ -164,7 +164,7 @@ func (s *PostService) GetUserPosts(userID uint, options QueryOptions) (*Paginate
 	conditions := map[string]interface{}{
 		"user_id": userID,
 	}
-	
+
 	// Add User preload to options if not already present
 	found := false
 	for _, preload := range options.Preload {
@@ -176,7 +176,7 @@ func (s *PostService) GetUserPosts(userID uint, options QueryOptions) (*Paginate
 	if !found {
 		options.Preload = append(options.Preload, "User")
 	}
-	
+
 	return s.FindMany(conditions, options)
 }
 
@@ -193,14 +193,14 @@ func (s *PostService) GetPublishedPosts(options QueryOptions) (*PaginatedResult[
 	if !found {
 		options.Preload = append(options.Preload, "User")
 	}
-	
+
 	return s.GetAll(options)
 }
 
 // SearchPosts searches posts by title and content
 func (s *PostService) SearchPosts(query string, options QueryOptions) (*PaginatedResult[models.Post], error) {
 	options.Search = query
-	
+
 	// Add User preload to options if not already present
 	found := false
 	for _, preload := range options.Preload {
@@ -212,7 +212,7 @@ func (s *PostService) SearchPosts(query string, options QueryOptions) (*Paginate
 	if !found {
 		options.Preload = append(options.Preload, "User")
 	}
-	
+
 	return s.GetAll(options)
 }
 
@@ -263,12 +263,12 @@ func (s *PostService) GetPostsByDateRange(startDate, endDate time.Time, options 
 	if options.Filter.Filters == nil {
 		options.Filter.Filters = make(map[string]interface{})
 	}
-	
+
 	options.Filter.Filters["created_at"] = map[string]interface{}{
 		"from": startDate,
 		"to":   endDate,
 	}
-	
+
 	// Add User preload to options if not already present
 	found := false
 	for _, preload := range options.Preload {
@@ -280,7 +280,7 @@ func (s *PostService) GetPostsByDateRange(startDate, endDate time.Time, options 
 	if !found {
 		options.Preload = append(options.Preload, "User")
 	}
-	
+
 	return s.GetAll(options)
 }
 
