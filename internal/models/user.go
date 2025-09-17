@@ -26,13 +26,40 @@ type User struct {
 	LastName  string         `json:"last_name" gorm:"not null" validate:"required,min=1,max=50"`
 	Role      Role           `json:"role" gorm:"not null;default:'user'" validate:"required,oneof=admin moderator user"`
 	IsActive  bool           `json:"is_active" gorm:"default:true"`
+	
+	// Enhanced security fields
+	EmailVerified    bool       `json:"email_verified" gorm:"default:false"`
+	EmailVerifiedAt  *time.Time `json:"email_verified_at,omitempty"`
+	PhoneNumber      string     `json:"phone_number,omitempty" gorm:"uniqueIndex"`
+	PhoneVerified    bool       `json:"phone_verified" gorm:"default:false"`
+	Avatar           string     `json:"avatar,omitempty"`
+	Timezone         string     `json:"timezone" gorm:"default:'UTC'"`
+	Language         string     `json:"language" gorm:"default:'en'"`
+	
+	// Security fields
+	FailedLoginAttempts int        `json:"-" gorm:"default:0"`
+	AccountLockedUntil  *time.Time `json:"-"`
+	LastLoginAt         *time.Time `json:"last_login_at,omitempty"`
+	LastLoginIP         string     `json:"-"`
+	PasswordChangedAt   *time.Time `json:"-"`
+	MustChangePassword  bool       `json:"-" gorm:"default:false"`
+	TwoFactorEnabled    bool       `json:"two_factor_enabled" gorm:"default:false"`
+	
+	// Timestamps
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
 
 	// Relationships
-	Posts    []Post    `json:"posts,omitempty" gorm:"foreignKey:UserID"`
-	Comments []Comment `json:"comments,omitempty" gorm:"foreignKey:UserID"`
+	Posts             []Post              `json:"posts,omitempty" gorm:"foreignKey:UserID"`
+	Comments          []Comment           `json:"comments,omitempty" gorm:"foreignKey:UserID"`
+	EmailVerifications []EmailVerification `json:"-" gorm:"foreignKey:UserID"`
+	Sessions          []UserSession       `json:"-" gorm:"foreignKey:UserID"`
+	FileUploads       []FileUpload        `json:"-" gorm:"foreignKey:UserID"`
+	Notifications     []Notification      `json:"-" gorm:"foreignKey:UserID"`
+	APIKeys           []APIKey            `json:"-" gorm:"foreignKey:UserID"`
+	TwoFactorAuth     *TwoFactorAuth      `json:"-" gorm:"foreignKey:UserID"`
+	AuditLogs         []AuditLog          `json:"-" gorm:"foreignKey:UserID"`
 }
 
 // UserCreateRequest represents the request payload for creating a user
@@ -57,15 +84,24 @@ type UserUpdateRequest struct {
 
 // UserResponse represents the response payload for user data
 type UserResponse struct {
-	ID        uint      `json:"id"`
-	Email     string    `json:"email"`
-	Username  string    `json:"username"`
-	FirstName string    `json:"first_name"`
-	LastName  string    `json:"last_name"`
-	Role      Role      `json:"role"`
-	IsActive  bool      `json:"is_active"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID               uint       `json:"id"`
+	Email            string     `json:"email"`
+	Username         string     `json:"username"`
+	FirstName        string     `json:"first_name"`
+	LastName         string     `json:"last_name"`
+	Role             Role       `json:"role"`
+	IsActive         bool       `json:"is_active"`
+	EmailVerified    bool       `json:"email_verified"`
+	EmailVerifiedAt  *time.Time `json:"email_verified_at,omitempty"`
+	PhoneNumber      string     `json:"phone_number,omitempty"`
+	PhoneVerified    bool       `json:"phone_verified"`
+	Avatar           string     `json:"avatar,omitempty"`
+	Timezone         string     `json:"timezone"`
+	Language         string     `json:"language"`
+	TwoFactorEnabled bool       `json:"two_factor_enabled"`
+	LastLoginAt      *time.Time `json:"last_login_at,omitempty"`
+	CreatedAt        time.Time  `json:"created_at"`
+	UpdatedAt        time.Time  `json:"updated_at"`
 }
 
 // LoginRequest represents the request payload for user login
@@ -165,15 +201,24 @@ func (u *User) CheckPassword(password string) bool {
 // ToResponse converts User model to UserResponse
 func (u *User) ToResponse() UserResponse {
 	return UserResponse{
-		ID:        u.ID,
-		Email:     u.Email,
-		Username:  u.Username,
-		FirstName: u.FirstName,
-		LastName:  u.LastName,
-		Role:      u.Role,
-		IsActive:  u.IsActive,
-		CreatedAt: u.CreatedAt,
-		UpdatedAt: u.UpdatedAt,
+		ID:              u.ID,
+		Email:           u.Email,
+		Username:        u.Username,
+		FirstName:       u.FirstName,
+		LastName:        u.LastName,
+		Role:            u.Role,
+		IsActive:        u.IsActive,
+		EmailVerified:   u.EmailVerified,
+		EmailVerifiedAt: u.EmailVerifiedAt,
+		PhoneNumber:     u.PhoneNumber,
+		PhoneVerified:   u.PhoneVerified,
+		Avatar:          u.Avatar,
+		Timezone:        u.Timezone,
+		Language:        u.Language,
+		TwoFactorEnabled: u.TwoFactorEnabled,
+		LastLoginAt:     u.LastLoginAt,
+		CreatedAt:       u.CreatedAt,
+		UpdatedAt:       u.UpdatedAt,
 	}
 }
 
@@ -204,4 +249,104 @@ func (u *User) HasPermission(requiredRole Role) bool {
 	default:
 		return false
 	}
+}
+
+// Security-related methods
+
+// IsAccountLocked checks if the account is currently locked
+func (u *User) IsAccountLocked() bool {
+	if u.AccountLockedUntil == nil {
+		return false
+	}
+	return time.Now().Before(*u.AccountLockedUntil)
+}
+
+// LockAccount locks the user account for the specified duration
+func (u *User) LockAccount(duration time.Duration) {
+	lockUntil := time.Now().Add(duration)
+	u.AccountLockedUntil = &lockUntil
+}
+
+// UnlockAccount unlocks the user account
+func (u *User) UnlockAccount() {
+	u.AccountLockedUntil = nil
+	u.FailedLoginAttempts = 0
+}
+
+// IncrementFailedAttempts increments failed login attempts
+func (u *User) IncrementFailedAttempts() {
+	u.FailedLoginAttempts++
+}
+
+// ResetFailedAttempts resets failed login attempts to 0
+func (u *User) ResetFailedAttempts() {
+	u.FailedLoginAttempts = 0
+}
+
+// ShouldLockAccount checks if account should be locked based on failed attempts
+func (u *User) ShouldLockAccount(maxAttempts int) bool {
+	return u.FailedLoginAttempts >= maxAttempts
+}
+
+// UpdateLastLogin updates the last login timestamp and IP
+func (u *User) UpdateLastLogin(ip string) {
+	now := time.Now()
+	u.LastLoginAt = &now
+	u.LastLoginIP = ip
+	u.ResetFailedAttempts()
+}
+
+// MarkEmailAsVerified marks the email as verified
+func (u *User) MarkEmailAsVerified() {
+	now := time.Now()
+	u.EmailVerified = true
+	u.EmailVerifiedAt = &now
+}
+
+// MarkPhoneAsVerified marks the phone as verified
+func (u *User) MarkPhoneAsVerified() {
+	u.PhoneVerified = true
+}
+
+// UpdatePassword updates the user's password and sets the password changed timestamp
+func (u *User) UpdatePassword(newPassword string) error {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	
+	now := time.Now()
+	u.Password = string(hashedPassword)
+	u.PasswordChangedAt = &now
+	u.MustChangePassword = false
+	
+	return nil
+}
+
+// SetMustChangePassword forces the user to change password on next login
+func (u *User) SetMustChangePassword() {
+	u.MustChangePassword = true
+}
+
+// GetFullName returns the user's full name
+func (u *User) GetFullName() string {
+	return u.FirstName + " " + u.LastName
+}
+
+// GetDisplayName returns a display-friendly name
+func (u *User) GetDisplayName() string {
+	if u.FirstName != "" {
+		return u.FirstName
+	}
+	return u.Username
+}
+
+// CanAccessResource checks if user can access a specific resource
+func (u *User) CanAccessResource(resourceUserID uint) bool {
+	// Admin can access everything
+	if u.IsAdmin() {
+		return true
+	}
+	// User can access their own resources
+	return u.ID == resourceUserID
 }

@@ -17,6 +17,11 @@ type Config struct {
 	JWT      JWTConfig
 	Logging  LoggingConfig
 	CORS     CORSConfig
+	Email    EmailConfig
+	Redis    RedisConfig
+	Security SecurityConfig
+	App      AppConfig
+	File     FileConfig
 }
 
 // ServerConfig holds server-specific configuration
@@ -28,13 +33,13 @@ type ServerConfig struct {
 
 // DatabaseConfig holds database-specific configuration
 type DatabaseConfig struct {
-	Type       string
-	Host       string
-	Port       int
-	Name       string
-	User       string
-	Password   string
-	SSLMode    string
+	Type     string
+	Host     string
+	Port     int
+	Name     string
+	User     string
+	Password string
+	SSLMode  string
 	SQLitePath string
 }
 
@@ -53,6 +58,55 @@ type LoggingConfig struct {
 // CORSConfig holds CORS-specific configuration
 type CORSConfig struct {
 	Origins []string
+}
+
+// EmailConfig holds email-specific configuration
+type EmailConfig struct {
+	Host     string
+	Port     int
+	Username string
+	Password string
+	From     string
+	TLS      bool
+}
+
+// RedisConfig holds Redis-specific configuration
+type RedisConfig struct {
+	Host     string
+	Port     int
+	Password string
+	DB       int
+	Enabled  bool
+}
+
+// SecurityConfig holds security-specific configuration
+type SecurityConfig struct {
+	MaxLoginAttempts    int
+	AccountLockDuration time.Duration
+	PasswordMinLength   int
+	PasswordRequireSpecial bool
+	PasswordRequireNumber  bool
+	PasswordRequireUpper   bool
+	SessionTimeout      time.Duration
+	Enable2FA           bool
+	OTPLength           int
+	OTPExpiry           time.Duration
+}
+
+// AppConfig holds application-specific configuration
+type AppConfig struct {
+	Name        string
+	Version     string
+	FrontendURL string
+	AdminEmail  string
+}
+
+// FileConfig holds file upload configuration
+type FileConfig struct {
+	MaxSize      int64
+	AllowedTypes []string
+	UploadPath   string
+	StaticURL    string
 }
 
 // Load loads configuration from environment variables
