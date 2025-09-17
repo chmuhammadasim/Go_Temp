@@ -132,6 +132,7 @@ type FileUpload struct {
 	FileSize      int64          `json:"file_size"`
 	MimeType      string         `json:"mime_type"`
 	FileType      string         `json:"file_type" gorm:"index"` // image, document, video, etc.
+	Category      string         `json:"category" gorm:"index"`  // user-defined category
 	IsPublic      bool           `json:"is_public" gorm:"default:false"`
 	DownloadCount int            `json:"download_count" gorm:"default:0"`
 	CreatedAt     time.Time      `json:"created_at"`

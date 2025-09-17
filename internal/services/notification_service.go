@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html/template"
 	"net/http"
 	"net/smtp"
 	"time"
@@ -195,11 +196,11 @@ func (ns *NotificationService) SendNotification(notification *Notification) erro
 
 	// Log audit event
 	if ns.audit != nil {
-		ns.audit.LogActivity(notification.UserID, "notification_sent", map[string]interface{}{
-			"notification_id": notification.ID,
-			"type":            notification.Type,
-			"recipient":       notification.Recipient,
-		})
+		auditData := AuditEventData{
+			EntityType: "notification",
+			EntityID:   string(rune(notification.ID)),
+		}
+		ns.audit.LogEvent(*notification.UserID, ActionCreate, auditData)
 	}
 
 	return nil
@@ -361,9 +362,9 @@ func (ns *NotificationService) CreateTemplate(template *NotificationTemplate) er
 }
 
 // parseTemplate parses a template with variables
-func (ns *NotificationService) parseTemplate(template NotificationTemplate, variables map[string]interface{}) (string, string, error) {
+func (ns *NotificationService) parseTemplate(tmpl NotificationTemplate, variables map[string]interface{}) (string, string, error) {
 	// Parse subject
-	subjectTemplate, err := template2.New("subject").Parse(template.Subject)
+	subjectTemplate, err := template.New("subject").Parse(tmpl.Subject)
 	if err != nil {
 		return "", "", err
 	}
@@ -374,7 +375,7 @@ func (ns *NotificationService) parseTemplate(template NotificationTemplate, vari
 	}
 
 	// Parse body
-	bodyTemplate, err := template2.New("body").Parse(template.Body)
+	bodyTemplate, err := template.New("body").Parse(tmpl.Body)
 	if err != nil {
 		return "", "", err
 	}
@@ -507,6 +508,3 @@ func (sc *SlackChannel) Send(notification *Notification) error {
 func (sc *SlackChannel) GetType() NotificationType {
 	return NotificationSlack
 }
-
-// Helper function to get template by name (for backwards compatibility)
-var template2 = template
