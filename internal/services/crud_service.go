@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
-	"time"
 
 	"gorm.io/gorm"
 )
@@ -43,11 +42,11 @@ type FilterOptions struct {
 
 // QueryOptions combines all query options
 type QueryOptions struct {
-	Pagination PaginationOptions  `json:"pagination"`
-	Sort       []SortOptions      `json:"sort"`
-	Filter     FilterOptions      `json:"filter"`
-	Search     string             `json:"search" form:"search"`
-	Preload    []string           `json:"preload" form:"preload"`
+	Pagination PaginationOptions `json:"pagination"`
+	Sort       []SortOptions     `json:"sort"`
+	Filter     FilterOptions     `json:"filter"`
+	Search     string            `json:"search" form:"search"`
+	Preload    []string          `json:"preload" form:"preload"`
 }
 
 // PaginatedResult represents a paginated result set
@@ -175,11 +174,11 @@ func (s *CRUDService[T]) Restore(id interface{}) error {
 func (s *CRUDService[T]) Exists(conditions map[string]interface{}) (bool, error) {
 	var count int64
 	query := s.db.Model(new(T))
-	
+
 	for field, value := range conditions {
 		query = query.Where(fmt.Sprintf("%s = ?", field), value)
 	}
-	
+
 	err := query.Count(&count).Error
 	return count > 0, err
 }
@@ -188,11 +187,11 @@ func (s *CRUDService[T]) Exists(conditions map[string]interface{}) (bool, error)
 func (s *CRUDService[T]) Count(conditions map[string]interface{}) (int64, error) {
 	var count int64
 	query := s.db.Model(new(T))
-	
+
 	for field, value := range conditions {
 		query = query.Where(fmt.Sprintf("%s = ?", field), value)
 	}
-	
+
 	err := query.Count(&count).Error
 	return count, err
 }
@@ -224,7 +223,7 @@ func (s *CRUDService[T]) FindMany(conditions map[string]interface{}, options Que
 	if options.Filter.Filters == nil {
 		options.Filter.Filters = make(map[string]interface{})
 	}
-	
+
 	for field, value := range conditions {
 		options.Filter.Filters[field] = value
 	}
@@ -235,11 +234,11 @@ func (s *CRUDService[T]) FindMany(conditions map[string]interface{}, options Que
 // BulkUpdate updates multiple records matching the conditions
 func (s *CRUDService[T]) BulkUpdate(conditions map[string]interface{}, updates map[string]interface{}) error {
 	query := s.db.Model(new(T))
-	
+
 	for field, value := range conditions {
 		query = query.Where(fmt.Sprintf("%s = ?", field), value)
 	}
-	
+
 	return query.Updates(updates).Error
 }
 
@@ -290,12 +289,12 @@ func (s *CRUDService[T]) applySorting(query *gorm.DB, sorts []SortOptions) *gorm
 			query = query.Order(fmt.Sprintf("%s %s", sort.Field, direction))
 		}
 	}
-	
+
 	// Default sorting if no sort specified
 	if len(sorts) == 0 {
 		query = query.Order("id DESC")
 	}
-	
+
 	return query
 }
 
@@ -303,11 +302,11 @@ func (s *CRUDService[T]) applySorting(query *gorm.DB, sorts []SortOptions) *gorm
 func (s *CRUDService[T]) applySearch(query *gorm.DB, search string) *gorm.DB {
 	// Get searchable fields based on the model type
 	searchableFields := s.getSearchableFields()
-	
+
 	if len(searchableFields) > 0 {
 		searchQuery := ""
 		args := []interface{}{}
-		
+
 		for i, field := range searchableFields {
 			if i > 0 {
 				searchQuery += " OR "
@@ -315,10 +314,10 @@ func (s *CRUDService[T]) applySearch(query *gorm.DB, search string) *gorm.DB {
 			searchQuery += fmt.Sprintf("%s LIKE ?", field)
 			args = append(args, "%"+search+"%")
 		}
-		
+
 		query = query.Where(searchQuery, args...)
 	}
-	
+
 	return query
 }
 
@@ -326,22 +325,22 @@ func (s *CRUDService[T]) applySearch(query *gorm.DB, search string) *gorm.DB {
 func (s *CRUDService[T]) getSearchableFields() []string {
 	// Default searchable fields based on common naming patterns
 	searchableFields := []string{}
-	
+
 	// Use reflection to find string fields that might be searchable
 	modelType := s.modelType
 	if modelType.Kind() == reflect.Ptr {
 		modelType = modelType.Elem()
 	}
-	
+
 	for i := 0; i < modelType.NumField(); i++ {
 		field := modelType.Field(i)
 		fieldType := field.Type
-		
+
 		// Check if it's a string field and likely searchable
 		if fieldType.Kind() == reflect.String {
 			fieldName := field.Name
 			gormTag := field.Tag.Get("gorm")
-			
+
 			// Get the database column name from gorm tag or use field name
 			dbFieldName := strings.ToLower(fieldName)
 			if strings.Contains(gormTag, "column:") {
@@ -354,18 +353,18 @@ func (s *CRUDService[T]) getSearchableFields() []string {
 				// Convert camelCase to snake_case
 				dbFieldName = camelToSnake(fieldName)
 			}
-			
+
 			// Add common searchable fields
 			if strings.Contains(strings.ToLower(fieldName), "name") ||
-			   strings.Contains(strings.ToLower(fieldName), "title") ||
-			   strings.Contains(strings.ToLower(fieldName), "description") ||
-			   strings.Contains(strings.ToLower(fieldName), "email") ||
-			   strings.Contains(strings.ToLower(fieldName), "username") {
+				strings.Contains(strings.ToLower(fieldName), "title") ||
+				strings.Contains(strings.ToLower(fieldName), "description") ||
+				strings.Contains(strings.ToLower(fieldName), "email") ||
+				strings.Contains(strings.ToLower(fieldName), "username") {
 				searchableFields = append(searchableFields, dbFieldName)
 			}
 		}
 	}
-	
+
 	return searchableFields
 }
 
