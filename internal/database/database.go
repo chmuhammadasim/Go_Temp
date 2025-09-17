@@ -7,8 +7,8 @@ import (
 	"go-backend/internal/config"
 	"go-backend/internal/models"
 
+	"github.com/glebarez/sqlite" // Pure Go SQLite driver
 	"gorm.io/driver/postgres"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
@@ -26,6 +26,7 @@ func NewDatabase(cfg *config.Config) (*Database, error) {
 	case "postgres":
 		dialector = postgres.Open(cfg.GetDSN())
 	case "sqlite":
+		// Use pure Go SQLite driver
 		dialector = sqlite.Open(cfg.GetDSN())
 	default:
 		return nil, fmt.Errorf("unsupported database type: %s", cfg.Database.Type)
