@@ -3,9 +3,9 @@ package services
 import (
 	"encoding/json"
 	"go-backend/internal/models"
+	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -74,22 +74,20 @@ type SecurityEventData struct {
 }
 
 // LogSecurityEvent creates a security event log entry
-func (s *SecurityService) LogSecurityEvent(userID *uuid.UUID, eventType SecurityEventType, severity SecuritySeverity, description string, data SecurityEventData) error {
-	dataJSON, err := json.Marshal(data)
+func (s *SecurityService) LogSecurityEvent(userID *uint, eventType SecurityEventType, severity SecuritySeverity, description string, data SecurityEventData) error {
+	metadataJSON, err := json.Marshal(data)
 	if err != nil {
 		return err
 	}
 
 	securityEvent := &models.SecurityEvent{
-		ID:          uuid.New(),
 		UserID:      userID,
 		EventType:   string(eventType),
 		Severity:    string(severity),
 		Description: description,
-		Data:        dataJSON,
+		Metadata:    string(metadataJSON),
 		IPAddress:   data.RemoteAddr,
 		UserAgent:   data.UserAgent,
-		Resolved:    false,
 		CreatedAt:   time.Now(),
 	}
 
@@ -121,7 +119,7 @@ func (s *SecurityService) LogSecurityEvent(userID *uuid.UUID, eventType Security
 }
 
 // DetectSuspiciousLogin analyzes login attempts for suspicious patterns
-func (s *SecurityService) DetectSuspiciousLogin(userID uuid.UUID, ipAddress, userAgent string) error {
+func (s *SecurityService) DetectSuspiciousLogin(userID uint, ipAddress, userAgent string) error {
 	// Check for multiple failed login attempts in short time window
 	failedAttempts, err := s.getRecentFailedLoginAttempts(userID, 15*time.Minute)
 	if err != nil {
@@ -159,7 +157,7 @@ func (s *SecurityService) DetectSuspiciousLogin(userID uuid.UUID, ipAddress, use
 }
 
 // DetectRateLimitViolation logs rate limit violations
-func (s *SecurityService) DetectRateLimitViolation(userID *uuid.UUID, ipAddress, userAgent, endpoint string, requestCount int) error {
+func (s *SecurityService) DetectRateLimitViolation(userID *uint, ipAddress, userAgent, endpoint string, requestCount int) error {
 	data := SecurityEventData{
 		RemoteAddr:     ipAddress,
 		UserAgent:      userAgent,
@@ -174,7 +172,7 @@ func (s *SecurityService) DetectRateLimitViolation(userID *uuid.UUID, ipAddress,
 }
 
 // DetectMaliciousRequest analyzes requests for malicious patterns
-func (s *SecurityService) DetectMaliciousRequest(userID *uuid.UUID, ipAddress, userAgent, method, path string, payload interface{}) error {
+func (s *SecurityService) DetectMaliciousRequest(userID *uint, ipAddress, userAgent, method, path string, payload interface{}) error {
 	// Simple pattern detection (in real implementation, use more sophisticated detection)
 	maliciousPatterns := []string{
 		"<script>", "javascript:", "SELECT * FROM", "UNION SELECT", "DROP TABLE",
@@ -188,10 +186,10 @@ func (s *SecurityService) DetectMaliciousRequest(userID *uuid.UUID, ipAddress, u
 		}
 	}
 
-	fullRequest := method + " " + path + " " + payloadStr
+	fullRequest := strings.ToLower(method + " " + path + " " + payloadStr)
 	
 	for _, pattern := range maliciousPatterns {
-		if contains(fullRequest, pattern) {
+		if strings.Contains(fullRequest, strings.ToLower(pattern)) {
 			data := SecurityEventData{
 				RemoteAddr:    ipAddress,
 				UserAgent:     userAgent,
@@ -206,10 +204,10 @@ func (s *SecurityService) DetectMaliciousRequest(userID *uuid.UUID, ipAddress, u
 			var description string
 
 			switch {
-			case contains(pattern, "SELECT") || contains(pattern, "UNION") || contains(pattern, "DROP"):
+			case strings.Contains(pattern, "SELECT") || strings.Contains(pattern, "UNION") || strings.Contains(pattern, "DROP"):
 				eventType = EventSQLInjectionAttempt
 				description = "SQL injection attempt detected"
-			case contains(pattern, "<script>") || contains(pattern, "javascript:"):
+			case strings.Contains(pattern, "<script>") || strings.Contains(pattern, "javascript:"):
 				eventType = EventXSSAttempt
 				description = "XSS attempt detected"
 			default:
@@ -224,25 +222,12 @@ func (s *SecurityService) DetectMaliciousRequest(userID *uuid.UUID, ipAddress, u
 	return nil
 }
 
-// MarkSecurityEventResolved marks a security event as resolved
-func (s *SecurityService) MarkSecurityEventResolved(eventID uuid.UUID, resolvedBy uuid.UUID, resolution string) error {
-	updates := map[string]interface{}{
-		"resolved":     true,
-		"resolved_by":  &resolvedBy,
-		"resolved_at":  time.Now(),
-		"resolution":   resolution,
-		"updated_at":   time.Now(),
-	}
-
-	return s.db.Model(&models.SecurityEvent{}).
-		Where("id = ?", eventID).
-		Updates(updates).Error
-}
-
 // GetUnresolvedSecurityEvents retrieves unresolved security events
 func (s *SecurityService) GetUnresolvedSecurityEvents(limit, offset int) ([]models.SecurityEvent, error) {
 	var events []models.SecurityEvent
-	err := s.db.Where("resolved = ?", false).
+	// Since the model doesn't have a resolved field in the actual structure, 
+	// we'll get all recent high and critical severity events
+	err := s.db.Where("severity IN (?, ?)", string(SeverityHigh), string(SeverityCritical)).
 		Order("created_at DESC").
 		Limit(limit).
 		Offset(offset).
@@ -262,7 +247,7 @@ func (s *SecurityService) GetSecurityEventsBySeverity(severity SecuritySeverity,
 }
 
 // GetUserSecurityEvents retrieves security events for a specific user
-func (s *SecurityService) GetUserSecurityEvents(userID uuid.UUID, limit, offset int) ([]models.SecurityEvent, error) {
+func (s *SecurityService) GetUserSecurityEvents(userID uint, limit, offset int) ([]models.SecurityEvent, error) {
 	var events []models.SecurityEvent
 	err := s.db.Where("user_id = ?", userID).
 		Order("created_at DESC").
@@ -282,15 +267,6 @@ func (s *SecurityService) GetSecurityEventStats() (map[string]interface{}, error
 		return nil, err
 	}
 	stats["total_events"] = totalCount
-
-	// Unresolved events
-	var unresolvedCount int64
-	if err := s.db.Model(&models.SecurityEvent{}).
-		Where("resolved = ?", false).
-		Count(&unresolvedCount).Error; err != nil {
-		return nil, err
-	}
-	stats["unresolved_events"] = unresolvedCount
 
 	// Events by severity
 	var severityCounts []struct {
@@ -319,7 +295,7 @@ func (s *SecurityService) GetSecurityEventStats() (map[string]interface{}, error
 }
 
 // getRecentFailedLoginAttempts counts failed login attempts in the specified time window
-func (s *SecurityService) getRecentFailedLoginAttempts(userID uuid.UUID, timeWindow time.Duration) (int, error) {
+func (s *SecurityService) getRecentFailedLoginAttempts(userID uint, timeWindow time.Duration) (int, error) {
 	cutoffTime := time.Now().Add(-timeWindow)
 	
 	var count int64
@@ -332,7 +308,7 @@ func (s *SecurityService) getRecentFailedLoginAttempts(userID uuid.UUID, timeWin
 }
 
 // isUnusualLocation checks if the IP address represents an unusual location for the user
-func (s *SecurityService) isUnusualLocation(userID uuid.UUID, ipAddress string) bool {
+func (s *SecurityService) isUnusualLocation(userID uint, ipAddress string) bool {
 	// Simplified implementation - in reality, you would use geolocation services
 	// and compare against user's typical locations
 	
@@ -348,23 +324,4 @@ func (s *SecurityService) isUnusualLocation(userID uuid.UUID, ipAddress string) 
 	
 	// If all recent logins are from different IP addresses, consider this unusual
 	return len(recentLogins) > 5
-}
-
-// contains checks if a string contains a substring (case-insensitive)
-func contains(s, substr string) bool {
-	// Simple case-insensitive substring check
-	// In production, use more sophisticated pattern matching
-	return len(s) >= len(substr) && 
-		   (s == substr || len(s) > len(substr) && 
-		    (s[:len(substr)] == substr || s[len(s)-len(substr):] == substr ||
-		     containsHelper(s, substr)))
-}
-
-func containsHelper(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }

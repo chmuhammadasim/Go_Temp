@@ -5,7 +5,6 @@ import (
 	"go-backend/internal/models"
 	"time"
 
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -57,20 +56,29 @@ type AuditEventData struct {
 }
 
 // LogEvent creates an audit log entry
-func (s *AuditService) LogEvent(userID uuid.UUID, action AuditAction, data AuditEventData) error {
-	dataJSON, err := json.Marshal(data)
-	if err != nil {
-		return err
-	}
+func (s *AuditService) LogEvent(userID uint, action AuditAction, data AuditEventData) error {
+	oldValuesJSON, _ := json.Marshal(data.OldValues)
+	newValuesJSON, _ := json.Marshal(data.NewValues)
+	metadataJSON, _ := json.Marshal(map[string]interface{}{
+		"request_id":    data.RequestID,
+		"session_id":    data.SessionID,
+		"method":        data.Method,
+		"path":          data.Path,
+		"status_code":   data.StatusCode,
+		"duration":      data.Duration,
+		"error_message": data.ErrorMessage,
+	})
 
 	auditLog := &models.AuditLog{
-		ID:        uuid.New(),
-		UserID:    &userID,
-		Action:    string(action),
-		Data:      dataJSON,
-		IPAddress: data.RemoteAddr,
-		UserAgent: data.UserAgent,
-		CreatedAt: time.Now(),
+		UserID:     &userID,
+		Action:     string(action),
+		Resource:   data.EntityType,
+		OldValues:  string(oldValuesJSON),
+		NewValues:  string(newValuesJSON),
+		IPAddress:  data.RemoteAddr,
+		UserAgent:  data.UserAgent,
+		Metadata:   string(metadataJSON),
+		CreatedAt:  time.Now(),
 	}
 
 	return s.db.Create(auditLog).Error
@@ -78,17 +86,22 @@ func (s *AuditService) LogEvent(userID uuid.UUID, action AuditAction, data Audit
 
 // LogSystemEvent creates an audit log entry for system events (without user)
 func (s *AuditService) LogSystemEvent(action AuditAction, data AuditEventData) error {
-	dataJSON, err := json.Marshal(data)
-	if err != nil {
-		return err
-	}
+	metadataJSON, _ := json.Marshal(map[string]interface{}{
+		"request_id":    data.RequestID,
+		"session_id":    data.SessionID,
+		"method":        data.Method,
+		"path":          data.Path,
+		"status_code":   data.StatusCode,
+		"duration":      data.Duration,
+		"error_message": data.ErrorMessage,
+	})
 
 	auditLog := &models.AuditLog{
-		ID:        uuid.New(),
 		Action:    string(action),
-		Data:      dataJSON,
+		Resource:  data.EntityType,
 		IPAddress: data.RemoteAddr,
 		UserAgent: data.UserAgent,
+		Metadata:  string(metadataJSON),
 		CreatedAt: time.Now(),
 	}
 
@@ -96,7 +109,7 @@ func (s *AuditService) LogSystemEvent(action AuditAction, data AuditEventData) e
 }
 
 // GetUserAuditLogs retrieves audit logs for a specific user
-func (s *AuditService) GetUserAuditLogs(userID uuid.UUID, limit, offset int) ([]models.AuditLog, error) {
+func (s *AuditService) GetUserAuditLogs(userID uint, limit, offset int) ([]models.AuditLog, error) {
 	var logs []models.AuditLog
 	err := s.db.Where("user_id = ?", userID).
 		Order("created_at DESC").

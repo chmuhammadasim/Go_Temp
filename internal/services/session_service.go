@@ -6,7 +6,6 @@ import (
 	"go-backend/internal/models"
 	"time"
 
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -21,19 +20,19 @@ func NewSessionService(db *gorm.DB) *SessionService {
 }
 
 // CreateSession creates a new user session
-func (s *SessionService) CreateSession(userID uuid.UUID, ipAddress, userAgent string) (*models.UserSession, error) {
+func (s *SessionService) CreateSession(userID uint, ipAddress, userAgent string) (*models.UserSession, error) {
 	sessionToken, err := s.generateSessionToken()
 	if err != nil {
 		return nil, err
 	}
 
 	session := &models.UserSession{
-		ID:        uuid.New(),
+		ID:        sessionToken,
 		UserID:    userID,
-		Token:     sessionToken,
 		IPAddress: ipAddress,
 		UserAgent: userAgent,
 		IsActive:  true,
+		LastSeen:  time.Now(),
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 		ExpiresAt: time.Now().Add(24 * time.Hour), // 24 hour expiry
@@ -49,7 +48,7 @@ func (s *SessionService) CreateSession(userID uuid.UUID, ipAddress, userAgent st
 // ValidateSession validates a session token and returns the session
 func (s *SessionService) ValidateSession(token string) (*models.UserSession, error) {
 	var session models.UserSession
-	err := s.db.Where("token = ? AND is_active = ? AND expires_at > ?", 
+	err := s.db.Where("id = ? AND is_active = ? AND expires_at > ?", 
 		token, true, time.Now()).
 		Preload("User").
 		First(&session).Error
@@ -58,7 +57,8 @@ func (s *SessionService) ValidateSession(token string) (*models.UserSession, err
 		return nil, err
 	}
 
-	// Update last accessed time
+	// Update last seen time
+	session.LastSeen = time.Now()
 	session.UpdatedAt = time.Now()
 	s.db.Save(&session)
 
@@ -68,43 +68,45 @@ func (s *SessionService) ValidateSession(token string) (*models.UserSession, err
 // RefreshSession extends the session expiry time
 func (s *SessionService) RefreshSession(token string) error {
 	return s.db.Model(&models.UserSession{}).
-		Where("token = ? AND is_active = ?", token, true).
-		Update("expires_at", time.Now().Add(24*time.Hour)).
-		Update("updated_at", time.Now()).Error
+		Where("id = ? AND is_active = ?", token, true).
+		Updates(map[string]interface{}{
+			"expires_at": time.Now().Add(24 * time.Hour),
+			"updated_at": time.Now(),
+		}).Error
 }
 
 // InvalidateSession deactivates a specific session
 func (s *SessionService) InvalidateSession(token string) error {
 	return s.db.Model(&models.UserSession{}).
-		Where("token = ?", token).
+		Where("id = ?", token).
 		Updates(map[string]interface{}{
-			"is_active":   false,
-			"updated_at":  time.Now(),
+			"is_active":  false,
+			"updated_at": time.Now(),
 		}).Error
 }
 
 // InvalidateUserSessions deactivates all sessions for a user
-func (s *SessionService) InvalidateUserSessions(userID uuid.UUID) error {
+func (s *SessionService) InvalidateUserSessions(userID uint) error {
 	return s.db.Model(&models.UserSession{}).
 		Where("user_id = ? AND is_active = ?", userID, true).
 		Updates(map[string]interface{}{
-			"is_active":   false,
-			"updated_at":  time.Now(),
+			"is_active":  false,
+			"updated_at": time.Now(),
 		}).Error
 }
 
 // InvalidateUserSessionsExcept deactivates all sessions for a user except the specified one
-func (s *SessionService) InvalidateUserSessionsExcept(userID uuid.UUID, exceptToken string) error {
+func (s *SessionService) InvalidateUserSessionsExcept(userID uint, exceptToken string) error {
 	return s.db.Model(&models.UserSession{}).
-		Where("user_id = ? AND token != ? AND is_active = ?", userID, exceptToken, true).
+		Where("user_id = ? AND id != ? AND is_active = ?", userID, exceptToken, true).
 		Updates(map[string]interface{}{
-			"is_active":   false,
-			"updated_at":  time.Now(),
+			"is_active":  false,
+			"updated_at": time.Now(),
 		}).Error
 }
 
 // GetUserSessions retrieves all active sessions for a user
-func (s *SessionService) GetUserSessions(userID uuid.UUID) ([]models.UserSession, error) {
+func (s *SessionService) GetUserSessions(userID uint) ([]models.UserSession, error) {
 	var sessions []models.UserSession
 	err := s.db.Where("user_id = ? AND is_active = ?", userID, true).
 		Order("created_at DESC").
@@ -113,7 +115,7 @@ func (s *SessionService) GetUserSessions(userID uuid.UUID) ([]models.UserSession
 }
 
 // GetAllUserSessions retrieves all sessions (active and inactive) for a user
-func (s *SessionService) GetAllUserSessions(userID uuid.UUID, limit, offset int) ([]models.UserSession, error) {
+func (s *SessionService) GetAllUserSessions(userID uint, limit, offset int) ([]models.UserSession, error) {
 	var sessions []models.UserSession
 	err := s.db.Where("user_id = ?", userID).
 		Order("created_at DESC").
@@ -166,7 +168,7 @@ func (s *SessionService) GetSessionStats() (map[string]interface{}, error) {
 }
 
 // IsUserSessionActive checks if a user has any active sessions
-func (s *SessionService) IsUserSessionActive(userID uuid.UUID) (bool, error) {
+func (s *SessionService) IsUserSessionActive(userID uint) (bool, error) {
 	var count int64
 	err := s.db.Model(&models.UserSession{}).
 		Where("user_id = ? AND is_active = ? AND expires_at > ?", 
@@ -176,7 +178,7 @@ func (s *SessionService) IsUserSessionActive(userID uuid.UUID) (bool, error) {
 }
 
 // GetSessionByID retrieves a session by its ID
-func (s *SessionService) GetSessionByID(sessionID uuid.UUID) (*models.UserSession, error) {
+func (s *SessionService) GetSessionByID(sessionID string) (*models.UserSession, error) {
 	var session models.UserSession
 	err := s.db.Where("id = ?", sessionID).
 		Preload("User").
@@ -196,6 +198,7 @@ func (s *SessionService) generateSessionToken() (string, error) {
 // UpdateSessionActivity updates the session's last activity timestamp
 func (s *SessionService) UpdateSessionActivity(token string, ipAddress string) error {
 	updates := map[string]interface{}{
+		"last_seen":  time.Now(),
 		"updated_at": time.Now(),
 	}
 	
@@ -205,6 +208,6 @@ func (s *SessionService) UpdateSessionActivity(token string, ipAddress string) e
 	}
 
 	return s.db.Model(&models.UserSession{}).
-		Where("token = ? AND is_active = ?", token, true).
+		Where("id = ? AND is_active = ?", token, true).
 		Updates(updates).Error
 }
