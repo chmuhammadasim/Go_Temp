@@ -14,7 +14,7 @@ type Logger struct {
 // NewLogger creates a new logger instance
 func NewLogger(level string, format string) *Logger {
 	log := logrus.New()
-	
+
 	// Set log level
 	switch level {
 	case "debug":
@@ -28,7 +28,7 @@ func NewLogger(level string, format string) *Logger {
 	default:
 		log.SetLevel(logrus.InfoLevel)
 	}
-	
+
 	// Set formatter
 	switch format {
 	case "json":
@@ -40,10 +40,10 @@ func NewLogger(level string, format string) *Logger {
 	default:
 		log.SetFormatter(&logrus.JSONFormatter{})
 	}
-	
+
 	// Set output
 	log.SetOutput(os.Stdout)
-	
+
 	return &Logger{log}
 }
 

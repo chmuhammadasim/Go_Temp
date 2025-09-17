@@ -2,6 +2,7 @@ package models
 
 import (
 	"time"
+
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -28,7 +29,7 @@ type User struct {
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
-	
+
 	// Relationships
 	Posts    []Post    `json:"posts,omitempty" gorm:"foreignKey:UserID"`
 	Comments []Comment `json:"comments,omitempty" gorm:"foreignKey:UserID"`
@@ -90,7 +91,7 @@ type Post struct {
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
-	
+
 	// Relationships
 	User     User      `json:"user" gorm:"foreignKey:UserID"`
 	Comments []Comment `json:"comments,omitempty" gorm:"foreignKey:PostID"`
@@ -119,7 +120,7 @@ type Comment struct {
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
-	
+
 	// Relationships
 	User User `json:"user" gorm:"foreignKey:UserID"`
 	Post Post `json:"post" gorm:"foreignKey:PostID"`
@@ -146,12 +147,12 @@ func (u *User) BeforeCreate(tx *gorm.DB) error {
 		}
 		u.Password = string(hashedPassword)
 	}
-	
+
 	// Set default role if not provided
 	if u.Role == "" {
 		u.Role = RoleUser
 	}
-	
+
 	return nil
 }
 

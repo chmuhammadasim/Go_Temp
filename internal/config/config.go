@@ -28,13 +28,13 @@ type ServerConfig struct {
 
 // DatabaseConfig holds database-specific configuration
 type DatabaseConfig struct {
-	Type     string
-	Host     string
-	Port     int
-	Name     string
-	User     string
-	Password string
-	SSLMode  string
+	Type       string
+	Host       string
+	Port       int
+	Name       string
+	User       string
+	Password   string
+	SSLMode    string
 	SQLitePath string
 }
 
@@ -104,7 +104,7 @@ func (c *Config) validate() error {
 	if c.JWT.Secret == "" {
 		return fmt.Errorf("JWT_SECRET is required")
 	}
-	
+
 	if c.JWT.Secret == "your-super-secret-jwt-key" && c.Server.Env == "production" {
 		return fmt.Errorf("default JWT_SECRET is not allowed in production")
 	}
@@ -193,7 +193,7 @@ func splitString(s, sep string) []string {
 	if s == "" {
 		return []string{}
 	}
-	
+
 	var result []string
 	start := 0
 	for i := 0; i < len(s); i++ {
@@ -210,15 +210,15 @@ func splitString(s, sep string) []string {
 func trimSpace(s string) string {
 	start := 0
 	end := len(s)
-	
+
 	for start < end && isSpace(s[start]) {
 		start++
 	}
-	
+
 	for end > start && isSpace(s[end-1]) {
 		end--
 	}
-	
+
 	return s[start:end]
 }
 
