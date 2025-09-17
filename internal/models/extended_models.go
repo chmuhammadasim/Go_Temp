@@ -44,8 +44,8 @@ func (ev *EmailVerification) MarkAsUsed() {
 type AuditLog struct {
 	ID         uint      `json:"id" gorm:"primaryKey"`
 	UserID     *uint     `json:"user_id,omitempty" gorm:"index"`
-	Action     string    `json:"action" gorm:"not null;index"`     // CREATE, UPDATE, DELETE, LOGIN, etc.
-	Resource   string    `json:"resource" gorm:"not null;index"`   // user, post, comment, etc.
+	Action     string    `json:"action" gorm:"not null;index"`   // CREATE, UPDATE, DELETE, LOGIN, etc.
+	Resource   string    `json:"resource" gorm:"not null;index"` // user, post, comment, etc.
 	ResourceID *uint     `json:"resource_id,omitempty" gorm:"index"`
 	OldValues  string    `json:"old_values,omitempty" gorm:"type:jsonb"`
 	NewValues  string    `json:"new_values,omitempty" gorm:"type:jsonb"`
@@ -76,16 +76,16 @@ type SecurityEvent struct {
 
 // UserSession represents active user sessions
 type UserSession struct {
-	ID          string         `json:"id" gorm:"primaryKey"`
-	UserID      uint           `json:"user_id" gorm:"not null;index"`
-	IPAddress   string         `json:"ip_address"`
-	UserAgent   string         `json:"user_agent"`
-	IsActive    bool           `json:"is_active" gorm:"default:true"`
-	LastSeen    time.Time      `json:"last_seen"`
-	ExpiresAt   time.Time      `json:"expires_at"`
-	CreatedAt   time.Time      `json:"created_at"`
-	UpdatedAt   time.Time      `json:"updated_at"`
-	DeletedAt   gorm.DeletedAt `json:"-" gorm:"index"`
+	ID        string         `json:"id" gorm:"primaryKey"`
+	UserID    uint           `json:"user_id" gorm:"not null;index"`
+	IPAddress string         `json:"ip_address"`
+	UserAgent string         `json:"user_agent"`
+	IsActive  bool           `json:"is_active" gorm:"default:true"`
+	LastSeen  time.Time      `json:"last_seen"`
+	ExpiresAt time.Time      `json:"expires_at"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
 
 	// Relationships
 	User User `json:"user" gorm:"foreignKey:UserID"`
@@ -96,8 +96,8 @@ type Permission struct {
 	ID          uint           `json:"id" gorm:"primaryKey"`
 	Name        string         `json:"name" gorm:"uniqueIndex;not null"`
 	Description string         `json:"description"`
-	Resource    string         `json:"resource" gorm:"not null"`    // user, post, comment, etc.
-	Action      string         `json:"action" gorm:"not null"`      // create, read, update, delete
+	Resource    string         `json:"resource" gorm:"not null"` // user, post, comment, etc.
+	Action      string         `json:"action" gorm:"not null"`   // create, read, update, delete
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`
 	DeletedAt   gorm.DeletedAt `json:"-" gorm:"index"`
@@ -124,19 +124,19 @@ type UserLoginAttempt struct {
 
 // FileUpload represents uploaded files
 type FileUpload struct {
-	ID           uint           `json:"id" gorm:"primaryKey"`
-	UserID       uint           `json:"user_id" gorm:"not null;index"`
-	OriginalName string         `json:"original_name" gorm:"not null"`
-	FileName     string         `json:"file_name" gorm:"not null;uniqueIndex"`
-	FilePath     string         `json:"file_path" gorm:"not null"`
-	FileSize     int64          `json:"file_size"`
-	MimeType     string         `json:"mime_type"`
-	FileType     string         `json:"file_type" gorm:"index"` // image, document, video, etc.
-	IsPublic     bool           `json:"is_public" gorm:"default:false"`
-	DownloadCount int           `json:"download_count" gorm:"default:0"`
-	CreatedAt    time.Time      `json:"created_at"`
-	UpdatedAt    time.Time      `json:"updated_at"`
-	DeletedAt    gorm.DeletedAt `json:"-" gorm:"index"`
+	ID            uint           `json:"id" gorm:"primaryKey"`
+	UserID        uint           `json:"user_id" gorm:"not null;index"`
+	OriginalName  string         `json:"original_name" gorm:"not null"`
+	FileName      string         `json:"file_name" gorm:"not null;uniqueIndex"`
+	FilePath      string         `json:"file_path" gorm:"not null"`
+	FileSize      int64          `json:"file_size"`
+	MimeType      string         `json:"mime_type"`
+	FileType      string         `json:"file_type" gorm:"index"` // image, document, video, etc.
+	IsPublic      bool           `json:"is_public" gorm:"default:false"`
+	DownloadCount int            `json:"download_count" gorm:"default:0"`
+	CreatedAt     time.Time      `json:"created_at"`
+	UpdatedAt     time.Time      `json:"updated_at"`
+	DeletedAt     gorm.DeletedAt `json:"-" gorm:"index"`
 
 	// Relationships
 	User User `json:"user" gorm:"foreignKey:UserID"`
@@ -201,14 +201,14 @@ type APIKey struct {
 
 // TwoFactorAuth represents 2FA settings for users
 type TwoFactorAuth struct {
-	ID         uint           `json:"id" gorm:"primaryKey"`
-	UserID     uint           `json:"user_id" gorm:"not null;uniqueIndex"`
-	Secret     string         `json:"secret" gorm:"not null"`
-	IsEnabled  bool           `json:"is_enabled" gorm:"default:false"`
-	BackupCodes string        `json:"backup_codes,omitempty" gorm:"type:jsonb"`
-	CreatedAt  time.Time      `json:"created_at"`
-	UpdatedAt  time.Time      `json:"updated_at"`
-	DeletedAt  gorm.DeletedAt `json:"-" gorm:"index"`
+	ID          uint           `json:"id" gorm:"primaryKey"`
+	UserID      uint           `json:"user_id" gorm:"not null;uniqueIndex"`
+	Secret      string         `json:"secret" gorm:"not null"`
+	IsEnabled   bool           `json:"is_enabled" gorm:"default:false"`
+	BackupCodes string         `json:"backup_codes,omitempty" gorm:"type:jsonb"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
+	DeletedAt   gorm.DeletedAt `json:"-" gorm:"index"`
 
 	// Relationships
 	User User `json:"user" gorm:"foreignKey:UserID"`

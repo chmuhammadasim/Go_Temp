@@ -7,7 +7,6 @@ import (
 	"math/big"
 	"strconv"
 	"strings"
-	"time"
 
 	"go-backend/internal/config"
 	"go-backend/pkg/logger"
@@ -47,7 +46,7 @@ func NewEmailService(cfg *config.Config, logger *logger.Logger) *EmailService {
 		cfg.Email.Username,
 		cfg.Email.Password,
 	)
-	
+
 	if cfg.Email.TLS {
 		dialer.StartTLSPolicy = mail.MandatoryStartTLS
 	}
@@ -65,7 +64,7 @@ func (e *EmailService) SendEmail(to, subject, body string, isHTML bool) error {
 	m.SetHeader("From", e.config.Email.From)
 	m.SetHeader("To", to)
 	m.SetHeader("Subject", subject)
-	
+
 	if isHTML {
 		m.SetBody("text/html", body)
 	} else {
@@ -92,7 +91,7 @@ func (e *EmailService) SendEmail(to, subject, body string, isHTML bool) error {
 // SendVerificationEmail sends email verification
 func (e *EmailService) SendVerificationEmail(email, username, token string) error {
 	verificationLink := fmt.Sprintf("%s/verify-email?token=%s", e.config.App.FrontendURL, token)
-	
+
 	tmplData := VerificationEmail{
 		Username: username,
 		Email:    email,
@@ -109,7 +108,7 @@ func (e *EmailService) SendVerificationEmail(email, username, token string) erro
 // SendPasswordResetEmail sends password reset email
 func (e *EmailService) SendPasswordResetEmail(email, username, token string) error {
 	resetLink := fmt.Sprintf("%s/reset-password?token=%s", e.config.App.FrontendURL, token)
-	
+
 	tmplData := VerificationEmail{
 		Username: username,
 		Email:    email,
@@ -154,12 +153,12 @@ func (e *EmailService) SendWelcomeEmail(email, username string) error {
 func (e *EmailService) GenerateOTP() (string, error) {
 	max := big.NewInt(999999)
 	min := big.NewInt(100000)
-	
+
 	n, err := rand.Int(rand.Reader, max.Sub(max, min).Add(max, big.NewInt(1)))
 	if err != nil {
 		return "", err
 	}
-	
+
 	return strconv.Itoa(int(n.Add(n, min).Int64())), nil
 }
 
@@ -167,7 +166,7 @@ func (e *EmailService) GenerateOTP() (string, error) {
 func (e *EmailService) GenerateToken(length int) (string, error) {
 	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	b := make([]byte, length)
-	
+
 	for i := range b {
 		n, err := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
 		if err != nil {
@@ -175,7 +174,7 @@ func (e *EmailService) GenerateToken(length int) (string, error) {
 		}
 		b[i] = charset[n.Int64()]
 	}
-	
+
 	return string(b), nil
 }
 
@@ -217,7 +216,7 @@ func (e *EmailService) generateVerificationEmailHTML(data VerificationEmail) str
     </div>
 </body>
 </html>`
-	
+
 	t, _ := template.New("verification").Parse(tmpl)
 	var buf strings.Builder
 	t.Execute(&buf, data)
@@ -260,7 +259,7 @@ func (e *EmailService) generatePasswordResetEmailHTML(data VerificationEmail) st
     </div>
 </body>
 </html>`
-	
+
 	t, _ := template.New("reset").Parse(tmpl)
 	var buf strings.Builder
 	t.Execute(&buf, data)
@@ -301,7 +300,7 @@ func (e *EmailService) generateOTPEmailHTML(data VerificationEmail) string {
     </div>
 </body>
 </html>`
-	
+
 	t, _ := template.New("otp").Parse(tmpl)
 	var buf strings.Builder
 	t.Execute(&buf, data)
@@ -341,7 +340,7 @@ func (e *EmailService) generateWelcomeEmailHTML(data VerificationEmail) string {
     </div>
 </body>
 </html>`
-	
+
 	t, _ := template.New("welcome").Parse(tmpl)
 	var buf strings.Builder
 	t.Execute(&buf, data)

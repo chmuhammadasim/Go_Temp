@@ -18,24 +18,24 @@ const (
 
 // User represents a user in the system
 type User struct {
-	ID        uint           `json:"id" gorm:"primaryKey"`
-	Email     string         `json:"email" gorm:"uniqueIndex;not null" validate:"required,email"`
-	Username  string         `json:"username" gorm:"uniqueIndex;not null" validate:"required,min=3,max=50"`
-	Password  string         `json:"-" gorm:"not null" validate:"required,min=6"`
-	FirstName string         `json:"first_name" gorm:"not null" validate:"required,min=1,max=50"`
-	LastName  string         `json:"last_name" gorm:"not null" validate:"required,min=1,max=50"`
-	Role      Role           `json:"role" gorm:"not null;default:'user'" validate:"required,oneof=admin moderator user"`
-	IsActive  bool           `json:"is_active" gorm:"default:true"`
-	
+	ID        uint   `json:"id" gorm:"primaryKey"`
+	Email     string `json:"email" gorm:"uniqueIndex;not null" validate:"required,email"`
+	Username  string `json:"username" gorm:"uniqueIndex;not null" validate:"required,min=3,max=50"`
+	Password  string `json:"-" gorm:"not null" validate:"required,min=6"`
+	FirstName string `json:"first_name" gorm:"not null" validate:"required,min=1,max=50"`
+	LastName  string `json:"last_name" gorm:"not null" validate:"required,min=1,max=50"`
+	Role      Role   `json:"role" gorm:"not null;default:'user'" validate:"required,oneof=admin moderator user"`
+	IsActive  bool   `json:"is_active" gorm:"default:true"`
+
 	// Enhanced security fields
-	EmailVerified    bool       `json:"email_verified" gorm:"default:false"`
-	EmailVerifiedAt  *time.Time `json:"email_verified_at,omitempty"`
-	PhoneNumber      string     `json:"phone_number,omitempty" gorm:"uniqueIndex"`
-	PhoneVerified    bool       `json:"phone_verified" gorm:"default:false"`
-	Avatar           string     `json:"avatar,omitempty"`
-	Timezone         string     `json:"timezone" gorm:"default:'UTC'"`
-	Language         string     `json:"language" gorm:"default:'en'"`
-	
+	EmailVerified   bool       `json:"email_verified" gorm:"default:false"`
+	EmailVerifiedAt *time.Time `json:"email_verified_at,omitempty"`
+	PhoneNumber     string     `json:"phone_number,omitempty" gorm:"uniqueIndex"`
+	PhoneVerified   bool       `json:"phone_verified" gorm:"default:false"`
+	Avatar          string     `json:"avatar,omitempty"`
+	Timezone        string     `json:"timezone" gorm:"default:'UTC'"`
+	Language        string     `json:"language" gorm:"default:'en'"`
+
 	// Security fields
 	FailedLoginAttempts int        `json:"-" gorm:"default:0"`
 	AccountLockedUntil  *time.Time `json:"-"`
@@ -44,22 +44,22 @@ type User struct {
 	PasswordChangedAt   *time.Time `json:"-"`
 	MustChangePassword  bool       `json:"-" gorm:"default:false"`
 	TwoFactorEnabled    bool       `json:"two_factor_enabled" gorm:"default:false"`
-	
+
 	// Timestamps
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
 
 	// Relationships
-	Posts             []Post              `json:"posts,omitempty" gorm:"foreignKey:UserID"`
-	Comments          []Comment           `json:"comments,omitempty" gorm:"foreignKey:UserID"`
+	Posts              []Post              `json:"posts,omitempty" gorm:"foreignKey:UserID"`
+	Comments           []Comment           `json:"comments,omitempty" gorm:"foreignKey:UserID"`
 	EmailVerifications []EmailVerification `json:"-" gorm:"foreignKey:UserID"`
-	Sessions          []UserSession       `json:"-" gorm:"foreignKey:UserID"`
-	FileUploads       []FileUpload        `json:"-" gorm:"foreignKey:UserID"`
-	Notifications     []Notification      `json:"-" gorm:"foreignKey:UserID"`
-	APIKeys           []APIKey            `json:"-" gorm:"foreignKey:UserID"`
-	TwoFactorAuth     *TwoFactorAuth      `json:"-" gorm:"foreignKey:UserID"`
-	AuditLogs         []AuditLog          `json:"-" gorm:"foreignKey:UserID"`
+	Sessions           []UserSession       `json:"-" gorm:"foreignKey:UserID"`
+	FileUploads        []FileUpload        `json:"-" gorm:"foreignKey:UserID"`
+	Notifications      []Notification      `json:"-" gorm:"foreignKey:UserID"`
+	APIKeys            []APIKey            `json:"-" gorm:"foreignKey:UserID"`
+	TwoFactorAuth      *TwoFactorAuth      `json:"-" gorm:"foreignKey:UserID"`
+	AuditLogs          []AuditLog          `json:"-" gorm:"foreignKey:UserID"`
 }
 
 // UserCreateRequest represents the request payload for creating a user
@@ -201,24 +201,24 @@ func (u *User) CheckPassword(password string) bool {
 // ToResponse converts User model to UserResponse
 func (u *User) ToResponse() UserResponse {
 	return UserResponse{
-		ID:              u.ID,
-		Email:           u.Email,
-		Username:        u.Username,
-		FirstName:       u.FirstName,
-		LastName:        u.LastName,
-		Role:            u.Role,
-		IsActive:        u.IsActive,
-		EmailVerified:   u.EmailVerified,
-		EmailVerifiedAt: u.EmailVerifiedAt,
-		PhoneNumber:     u.PhoneNumber,
-		PhoneVerified:   u.PhoneVerified,
-		Avatar:          u.Avatar,
-		Timezone:        u.Timezone,
-		Language:        u.Language,
+		ID:               u.ID,
+		Email:            u.Email,
+		Username:         u.Username,
+		FirstName:        u.FirstName,
+		LastName:         u.LastName,
+		Role:             u.Role,
+		IsActive:         u.IsActive,
+		EmailVerified:    u.EmailVerified,
+		EmailVerifiedAt:  u.EmailVerifiedAt,
+		PhoneNumber:      u.PhoneNumber,
+		PhoneVerified:    u.PhoneVerified,
+		Avatar:           u.Avatar,
+		Timezone:         u.Timezone,
+		Language:         u.Language,
 		TwoFactorEnabled: u.TwoFactorEnabled,
-		LastLoginAt:     u.LastLoginAt,
-		CreatedAt:       u.CreatedAt,
-		UpdatedAt:       u.UpdatedAt,
+		LastLoginAt:      u.LastLoginAt,
+		CreatedAt:        u.CreatedAt,
+		UpdatedAt:        u.UpdatedAt,
 	}
 }
 
@@ -314,12 +314,12 @@ func (u *User) UpdatePassword(newPassword string) error {
 	if err != nil {
 		return err
 	}
-	
+
 	now := time.Now()
 	u.Password = string(hashedPassword)
 	u.PasswordChangedAt = &now
 	u.MustChangePassword = false
-	
+
 	return nil
 }
 

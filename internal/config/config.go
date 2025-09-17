@@ -33,13 +33,13 @@ type ServerConfig struct {
 
 // DatabaseConfig holds database-specific configuration
 type DatabaseConfig struct {
-	Type     string
-	Host     string
-	Port     int
-	Name     string
-	User     string
-	Password string
-	SSLMode  string
+	Type       string
+	Host       string
+	Port       int
+	Name       string
+	User       string
+	Password   string
+	SSLMode    string
 	SQLitePath string
 }
 
@@ -81,16 +81,16 @@ type RedisConfig struct {
 
 // SecurityConfig holds security-specific configuration
 type SecurityConfig struct {
-	MaxLoginAttempts    int
-	AccountLockDuration time.Duration
-	PasswordMinLength   int
+	MaxLoginAttempts       int
+	AccountLockDuration    time.Duration
+	PasswordMinLength      int
 	PasswordRequireSpecial bool
 	PasswordRequireNumber  bool
 	PasswordRequireUpper   bool
-	SessionTimeout      time.Duration
-	Enable2FA           bool
-	OTPLength           int
-	OTPExpiry           time.Duration
+	SessionTimeout         time.Duration
+	Enable2FA              bool
+	OTPLength              int
+	OTPExpiry              time.Duration
 }
 
 // AppConfig holds application-specific configuration
